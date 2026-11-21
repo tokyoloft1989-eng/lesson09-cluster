@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第 9 课 客户分群检查</title>
+<style>
+  :root {
+    --bg: #f4f6f9;
+    --panel: #ffffff;
+    --ink: #1f2933;
+    --muted: #6b7785;
+    --line: #e3e8ef;
+    --accent: #3B6FB6;
+    --radius: 12px;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 20px 16px 36px;
+    background: var(--bg);
+    color: var(--ink);
+    font: 15px/1.6 -apple-system, "PingFang SC", "Heiti SC", "Microsoft YaHei", sans-serif;
+  }
+  .wrap { max-width: 1020px; margin: 0 auto; }
+
+  header {
+    display: flex; flex-wrap: wrap; gap: 14px;
+    align-items: flex-end; justify-content: space-between;
+    margin-bottom: 16px;
+  }
+  h1 { margin: 0; font-size: 22px; letter-spacing: .2px; }
+  .sub { margin: 4px 0 0; color: var(--muted); font-size: 13px; }
+
+  .toggle {
+    display: inline-flex; padding: 3px; gap: 2px;
+    background: #e8edf4; border-radius: 999px;
+  }
+  .toggle button {
+    border: 0; background: transparent; color: #45515f;
+    padding: 7px 18px; border-radius: 999px;
+    font: inherit; font-size: 14px; cursor: pointer;
+    transition: background .15s, color .15s;
+  }
+  .toggle button[aria-pressed="true"] {
+    background: #fff; color: var(--accent); font-weight: 600;
+    box-shadow: 0 1px 3px rgba(31, 41, 51, .14);
+  }
+  .toggle button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  .stats {
+    display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px; margin-bottom: 16px;
+  }
+  .stat {
+    background: var(--panel); border: 1px solid var(--line);
+    border-radius: var(--radius); padding: 12px 14px;
+  }
+  .stat .label { display: block; color: var(--muted); font-size: 12.5px; }
+  .stat strong { font-size: 24px; font-variant-numeric: tabular-nums; }
+
+  .layout {
+    display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr);
+    gap: 14px; align-items: start; margin-bottom: 14px;
+  }
+  .panel {
+    background: var(--panel); border: 1px solid var(--line);
+    border-radius: var(--radius); padding: 14px;
+  }
+  figure.panel { margin: 0; }
+  .panel h2 { margin: 0 0 8px; font-size: 15px; font-weight: 600; }
+  .panel img { display: block; width: 100%; height: auto; border-radius: 8px; }
+  figcaption { margin-top: 8px; color: var(--muted); font-size: 12.5px; }
+
+  .cards { display: grid; gap: 10px; }
+  .cards .head {
+    display: flex; justify-content: space-between; gap: 8px;
+    align-items: baseline; font-size: 12.5px; color: var(--muted);
+  }
+  .card {
+    border: 1px solid var(--line); border-left: 4px solid var(--c, var(--accent));
+    border-radius: 10px; padding: 10px 12px; background: #fcfdff;
+  }
+  .card h3 { margin: 0; font-size: 15px; }
+  .card .row { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+  .badge {
+    color: var(--muted); font-size: 12.5px; font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+  .balance { margin: 6px 0 2px; font-size: 13.5px; }
+  .balance strong { font-size: 19px; color: var(--c, var(--accent)); font-variant-numeric: tabular-nums; }
+  .meta { margin: 0; color: var(--muted); font-size: 12.5px; }
+  .tip { margin: 6px 0 0; font-size: 13px; color: #3c4753; }
+
+  .kpanel { margin-bottom: 14px; }
+  .kpanel p { margin: 8px 0 0; color: var(--muted); font-size: 12.5px; }
+
+  .note {
+    margin: 0 0 10px; padding: 8px 10px;
+    background: #fff8ec; border: 1px solid #f3e0bf; border-radius: 8px;
+    color: #7a5a23; font-size: 12.5px;
+  }
+  footer {
+    display: flex; flex-wrap: wrap; gap: 8px 18px;
+    align-items: center; font-size: 13px; color: var(--muted);
+  }
+  footer a { color: var(--accent); text-decoration: none; border-bottom: 1px solid rgba(59,111,182,.3); }
+  footer a:hover { border-bottom-color: var(--accent); }
+
+  @media (max-width: 760px) {
+    .layout { grid-template-columns: minmax(0, 1fr); }
+    h1 { font-size: 20px; }
+    .stat strong { font-size: 21px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>第 9 课 客户分群</h1>
+      <p class="sub">课堂演示包 300 位客户 · 特征：收入与余额（标准化）</p>
+    </div>
+    <div class="toggle" role="group" aria-label="簇数切换">
+      <button type="button" data-k="3" aria-pressed="true">三簇</button>
+      <button type="button" data-k="4" aria-pressed="false">四簇</button>
+    </div>
+  </header>
+
+  <section class="stats" aria-live="polite">
+    <div class="stat"><span class="label">客户人数</span><strong id="statTotal">300</strong></div>
+    <div class="stat"><span class="label">当前簇数</span><strong id="statK">3</strong></div>
+    <div class="stat"><span class="label">当前轮廓系数</span><strong id="statSil">0.6902</strong></div>
+  </section>
+
+  <main class="layout">
+    <figure class="panel">
+      <h2 id="chartTitle">当前分群图（三簇）</h2>
+      <img id="clusterImg" src="../outputs/04_compare_scale.png"
+           alt="三簇分群图：左为原始坐标、右为标准化坐标的收入余额散点">
+      <figcaption id="chartCap">横轴收入、纵轴余额；三簇为标准化两特征的讲义主结果。</figcaption>
+    </figure>
+
+    <section class="panel">
+      <div class="head">
+        <h2 style="margin:0">客群画像</h2>
+        <span id="cardHint">按平均收入从低到高</span>
+      </div>
+      <p class="note" id="cardNote" hidden></p>
+      <div class="cards" id="cards"></div>
+    </section>
+  </main>
+
+  <section class="panel kpanel">
+    <h2>选 k 双证据</h2>
+    <img src="../outputs/05_choose_k.png" alt="SSE 肘点与轮廓系数随 k 变化的双折线图">
+    <p>k=1–9：SSE 肘点在 k=3（62.79），轮廓最高在 k=2（0.7351）；k=3 轮廓 0.6902、k=4 为 0.6574，业务上取三层更清晰。</p>
+  </section>
+
+  <footer>
+    <span>相关文件：</span>
+    <a href="../progress.md">进度报告 progress.md</a>
+    <a href="../outputs/choose_k.csv">选 k 数据 choose_k.csv</a>
+    <a id="profileCsvLink" href="../outputs/profile_k3.csv">当前画像 CSV</a>
+    <a href="../outputs/profile_k4.csv">四簇画像 CSV</a>
+  </footer>
+</div>
+
+<script>
+  // 数字取自 outputs/choose_k.csv、profile_k3.csv、profile_k4.csv 的实际读数
+  const DATA = {
+    3: {
+      sil: "0.6902",
+      sse: "62.79",
+      img: "../outputs/04_compare_scale.png",
+      alt: "三簇分群图：左为原始坐标、右为标准化坐标的收入余额散点",
+      title: "当前分群图（三簇）",
+      cap: "横轴收入、纵轴余额；三簇为标准化两特征的讲义主结果。",
+      csv: "../outputs/profile_k3.csv",
+      note: "",
+      clusters: [
+        { name: "青年低收低储型", n: 126, share: "42.0%", age: "21.49", income: "6.11", bal: "1.45", prod: "1.96",
+          tip: "线上低成本维护，主推首卡、消费信贷与零钱理财。", color: "#3B6FB6" },
+        { name: "中年中收中储型", n: 124, share: "41.3%", age: "37.28", income: "18.94", bal: "12.45", prod: "2.18",
+          tip: "交叉销售理财、基金定投、分期与家庭保障，提升产品数。", color: "#E08A3C" },
+        { name: "熟龄高收高储型", n: 50, share: "16.7%", age: "47.10", income: "41.58", bal: "48.35", prod: "1.96",
+          tip: "专属客户经理，大额存单、资产配置与私行服务，优先防流失。", color: "#5BA57A" }
+      ]
+    },
+    4: {
+      sil: "0.6574",
+      sse: "45.17",
+      img: "../outputs/07_scatter_k4.png",
+      alt: "四簇分群图：收入余额散点，星形为各簇质心",
+      title: "当前分群图（四簇）",
+      cap: "横轴收入、纵轴余额（万元）；星形为簇质心。",
+      csv: "../outputs/profile_k4.csv",
+      note: "四簇为同一演示数据的扩展练习；Word 指定的 bank_customers.csv 未提供。",
+      clusters: [
+        { name: "青年低额型", n: 126, share: "42.0%", age: "21.49", income: "6.11", bal: "1.45", prod: "1.96",
+          tip: "线上开卡礼、小额消费贷与零钱理财，低成本批量运营。", color: "#3B6FB6" },
+        { name: "中坚主力型", n: 123, share: "41.0%", age: "37.15", income: "18.74", bal: "12.46", prod: "2.19",
+          tip: "定投、分期与家庭保障交叉销售，产品数向 3 个提升。", color: "#E08A3C" },
+        { name: "高储稳健型", n: 26, share: "8.7%", age: "47.58", income: "39.28", bal: "57.42", prod: "2.00",
+          tip: "专属客户经理，大额存单与私行体验，防流失为第一目标。", color: "#5BA57A" },
+        { name: "高薪低沉淀型", n: 25, share: "8.3%", age: "46.84", income: "44.03", bal: "37.44", prod: "1.88",
+          tip: "代发工资、自动理财与高端卡权益，把高流水转成留存。", color: "#B05A9E" }
+      ]
+    }
+  };
+
+  const $ = (id) => document.getElementById(id);
+
+  function render(k) {
+    const d = DATA[k];
+    $("statK").textContent = String(k);
+    $("statSil").textContent = d.sil;
+
+    $("clusterImg").src = d.img;
+    $("clusterImg").alt = d.alt;
+    $("chartTitle").textContent = d.title;
+    $("chartCap").textContent = d.cap;
+    $("profileCsvLink").href = d.csv;
+
+    const note = $("cardNote");
+    note.hidden = !d.note;
+    note.textContent = d.note;
+
+    $("cards").innerHTML = d.clusters.map((c) => `
+      <article class="card" style="--c:${c.color}">
+        <div class="row">
+          <h3>${c.name}</h3>
+          <span class="badge">${c.n} 人 · ${c.share}</span>
+        </div>
+        <p class="balance">平均余额 <strong>${c.bal}</strong> 万元</p>
+        <p class="meta">均龄 ${c.age} 岁 · 均收入 ${c.income} 万元 · 产品 ${c.prod} 个</p>
+        <p class="tip">${c.tip}</p>
+      </article>`).join("");
+
+    const total = d.clusters.reduce((s, c) => s + c.n, 0);
+    $("statTotal").textContent = String(total);
+    if (total !== 300) console.warn("人数合计不是 300：", total);
+
+    document.querySelectorAll(".toggle button").forEach((b) => {
+      b.setAttribute("aria-pressed", String(Number(b.dataset.k) === k));
+    });
+  }
+
+  document.querySelectorAll(".toggle button").forEach((b) => {
+    b.addEventListener("click", () => render(Number(b.dataset.k)));
+  });
+
+  render(3); // 默认三簇
+</script>
+</body>
+</html>
